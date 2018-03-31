@@ -1,0 +1,1528 @@
+swagger: '2.0'
+info:
+  version: '1.0.0'
+  description: |
+    # Introduction
+    The VQ Marketplace Platform is used for building and running sharing economy and on-demand marketplaces. It supports multi-tenancy. The supported resources include users, listings, listing requests, orders (transactions), reviews and reporting. The Platform follows RESTful standards of data exchange to allow easy and fast integration with third-party providers.
+    
+    # Systems
+    MySQL is the database of choice for VQ Marketplace Platform. Files, images and similar assets are persisted in AWS S3 buckets.
+    
+    # Integrations
+    The platform integrates with Stripe - a global payment provider for fiat currency and Mandrill - a Mailchimp Service for E-Mail sending automation.
+    
+    # The Database Model
+    To read the database model in detail, please refer to [this Medium article](https://medium.com/@adrianbarwicki/sharing-economy-marketplace-model-c6732f3e0644)
+    
+    # Installation
+    For more information on how to clone and setup the project please check out our [GitHub repository](https://github.com/vq-labs/vq-marketplace-platform).
+    
+    # Frontend
+    You can use the web services with the official VQ Marketplace React Storefront. Please refer to our [Github repository ](https://github.com/vq-labs/vq-marketplace-web-app)for more information on how to clone and install the web-app
+    
+    # Hosting
+    VQ Marketplace Platform is a priopiatary technology of [VQ LABS](https://vq-labs.com). You can start your marketplace running on the VQ Marketplace Platform on [vqmarketplace.com](https://www.vqmarketplace.com/pricing).
+    
+    # Partnership
+    Are you a software agency or an enterprise or just interested in building marketplaces? VQ is helping companies like yours to adapt and stay ahead of competition.
+    For more info please check our [Partnership page](https://www.vqmarketplace.com/partnership)
+    
+    # VQ Marketplace Network, Decentralized Marketplace Model
+    
+    You can read more about VQ Marketplace Ecosystem in our [whitepaper](https://vqlabs.typeform.com/to/MPwoi9)
+    
+  title: VQ Marketplace
+# host: TENANT.vqmarketplace.com
+# basePath: /api
+schemes:
+ - https
+tags:
+- name: user
+  description: Tasks/requests and orders are proprietary to the user
+- name: task
+  description: Listings are treated as tasks.
+- name: request
+  description: Requests associated to the listing made by the viewer of the listing
+- name: order
+  description: Orders associated to both the listing and its request that is made by the requester
+paths:
+  /task:
+    get:
+      tags:
+      - task
+      summary: Gets all tasks
+      parameters:
+        - in: query
+          name: untilNow
+          type: integer
+          description: If set to 1, gets all listings up to now instead of all listings
+        - in: query
+          name: category
+          type: string
+          description: A slug style string that specifies a single category to filter the listings. If not specified, gets all the listings instead
+        - in: query
+          name: lat
+          type: number
+          format: float
+          description: Lattitude to query for. Also requires longtitude specified. If not specified, gets all the listings.
+        - in: query
+          name: lng
+          type: number
+          format: float
+          description: Longtitude to query for. Also requires lattitude specified. If not specified, gets all the listings.
+        - in: query
+          name: rad
+          type: integer
+          description: Search radius based on longtitude and lattitude. Requires both lattitude and longtitude in query
+        - in: query
+          name: status
+          type: integer
+          description: Gets all listings if specified the enum of the status, otherwise all listings
+        - in: query
+          name: userId
+          type: integer
+          description: Gets listings of a specified user if specified. All if not.
+        - in: query
+          name: taskType
+          type: integer
+          description: Gets the correct type of task (SUPPLY|DEMAND) if specified. All if not.
+        - in: query
+          name: minPrice
+          type: integer
+          description: If specified, gets all listings whose price is greater than minPrice. Can be used without maxPrice.
+        - in: query
+          name: maxPrice
+          type: integer
+          description: If specified, gets all listings whose price is lesser than maxPrice. Can be used without minPrice
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Task'
+    post:
+      tags:
+      - task
+      summary: Create a blank listing to the marketplace which you'll add more details on. See sub-routes of task for further construction of a task.
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              taskType:
+                type: integer
+              userId:
+                type: integer
+  /task/{id}:
+    get:
+      tags:
+      - task
+      summary: Gets the listing by ID
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Gets the listing associated to the ID
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/TaskWithComments'
+  /task/{id}/comment:
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: string
+      summary: Updates an existing (or newly created blank) listing by adding a new comment to it
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/TaskComment' 
+  /task/{id}/category:
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: array
+            items:
+            - type: object
+              properties:
+                code:
+                  type: string
+                  description: slug-style
+      summary: Updates an existing (or newly created blank) listing by adding a new category to it
+      responses:
+        200:
+          description: SUCCESS 
+  /task/{id}/image:
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: array
+            items:
+            - type: object
+              properties:
+                imageUrl:
+                  type: string
+      summary: Updates an existing (or newly created blank) listing by adding a new image to it
+      responses:
+        200:
+          description: SUCCESS 
+  /task/{id}/timing:
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              dates:
+                type: array
+                items: 
+                - type: object
+                  properties:
+                    date:
+                      type: integer
+                    endDate:
+                      type: integer
+              duration:
+                type: integer
+      summary: Updates an existing (or newly created blank) listing by adding a new timing to it
+      responses:
+        200:
+          description: SUCCESS 
+  /task/{id}/location:
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: array
+            items:
+            - type: object
+              properties:
+                lat:
+                  type: number
+                  format: float
+                lng:
+                  type: number
+                  format: float   
+          description: Location object to replace the existing one
+      summary: Updates an existing (or newly created blank) listing by updating its location
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/TaskLocation'
+  /task-location:
+    get:
+      tags:
+      - task
+      summary: Gets users task location
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/TaskLocation'
+    post:
+      tags:
+      - task
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/TaskLocation'
+      summary: Updates user's default location or creates a new one
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/TaskLocation'
+  /request:
+    get:
+      tags:
+      - request
+      summary: Gets all requests
+      parameters:
+        - in: query
+          name: userId
+          type: integer
+          description: If specified, gets all the requests of the user; otherwise gets all requests
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/RequestWithDetails'
+    post:
+      tags:
+      - request
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              taskId:
+                type: integer
+      summary: Creates a request on an active listing
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Message'
+  /request/{id}:
+    put:
+      tags:
+      - request
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true      
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+      summary: Update the status of a request
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Request'
+  /request/{id}/order:
+    get:
+      tags:
+      - request
+      summary: Gets the order of a request
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Order'
+  /order:
+    get:
+      tags:
+      - order
+      summary: Gets all orders
+      parameters:
+        - in: query
+          name: userId
+          type: integer
+          description: If specified, gets all the orders of the user; otherwise gets all orders
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/OrderWithDetails'
+    post:
+      tags:
+      - order
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              taskId:
+                type: integer
+              requestId:
+                type: integer
+      summary: Creates an order on an booked request
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/OrderWithDetails'
+  /order/{id}:
+    get:
+      tags:
+      - order
+      summary: Gets order by ID
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/OrderWithDetails'
+    put:
+      tags:
+      - order
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true      
+      summary: Settles the order and its request
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Order'
+  /order/{id}/request:
+    get:
+      tags:
+      - order
+      summary: Gets the request of an order
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Request'            
+  /order/{id}/actions/close:
+    put:
+      tags:
+      - order
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true      
+      summary: Closes (unlike settling) the order and its request
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Order'
+  /order/{id}/actions/cancel-autosettlement:
+    put:
+      tags:
+      - order
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true          
+      summary: Cancels the settlement of the order and its request
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/Order'
+  /me:
+    get:
+      tags:
+      - user
+      summary: Gets the current user if logged in
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/User'
+  /user/{id}:
+    get:
+      tags:
+      - user
+      summary: Gets user by ID
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/User'
+    put:
+      tags:
+      - user
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true      
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: array
+            items:
+              - type: object
+                properties:
+                  firstName:
+                    type: string
+                  lastName:
+                    type: string
+                  bio:
+                    type: string
+                  website:
+                    type: string
+                  imageUrl:
+                    type: string
+      summary: Updates the allowed fields of user
+      responses:
+        200:
+          description: SUCCESS
+          schema:
+            $ref: '#/definitions/User'       
+    delete:
+      tags:
+      - user
+      summary: Deactivates the user account
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: SUCCESS            
+securityDefinitions:
+  marketplace_auth:
+    type: basic
+definitions:
+  TaskLocation:
+    type: object
+    required:
+    - taskId
+    - lat
+    - lng
+    - geo
+    - countryCode
+    - street
+    - postalCode
+    - city
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      taskId:
+        type: integer
+      lat:
+        type: number
+        format: float
+      lng:
+        type: number
+        format: float
+      geo:
+        type: number
+        format: float
+      countryCode:
+        type: string
+      street:
+        type: string
+      postalCode:
+        type: string
+      city:
+        type: string
+      formattedAddress:
+        type: string
+      streetNumber:
+        type: string
+      addressAddition:
+        type: string
+      region:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time                             
+  TaskCategory:
+    type: object
+    properties:
+      id:
+        type: integer
+      taskId:
+        type: integer
+      code:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  TaskTiming:
+    type: object
+    required:
+    - date
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      taskId:
+        type: integer
+      type:
+        type: string
+      date:
+        type: string
+        format: date-time
+      endDate:
+        type: string
+        format: date-time
+      duration:
+        type: integer
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  TaskComment:
+    type: object
+    required:
+    - comment
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      taskId:
+        type: integer
+      comment:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  TaskImage:
+    type: object
+    properties:
+      id:
+        type: integer
+      taskId:
+        type: integer
+      imageUrl:
+        type: string
+      featured:
+        type: boolean
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  Review:
+    type: object
+    properties:
+      id:
+        type: integer
+      fromUserId:
+        type: integer
+      toUserId:
+        type: integer
+      taskId:
+        type: integer
+      requestId:
+        type: integer
+      orderId:
+        type: integer
+      body:
+        type: string
+      rate:
+        type: string
+        enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  Request:
+    type: object
+    properties:
+      id:
+        type: integer
+      fromUserId:
+        type: integer
+      toUserId:
+        type: integer
+      taskId:
+        type: integer
+      intervalStart:
+        type: integer
+      intervalEnd:
+        type: integer
+      quantity:
+        type: integer
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 PENDING
+          - 5 ACCEPTED
+          - 6 BOOKED
+          - 10 MARKED DONE
+          - 14 CLOSED
+          - 15 SETTLED
+          - 20 DECLINED
+          - 25 CANCELLED
+        enum:
+        - 0
+        - 5
+        - 6
+        - 10
+        - 14
+        - 15
+        - 20
+        - 25
+      review:
+        type: object
+        $ref: '#/definitions/Review'
+      order:
+        type: object
+        $ref: '#/definitions/Order'
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  Order:
+    type: object
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      taskId:
+        type: integer
+      requestId:
+        type: integer
+      billingAddressId:
+        type: integer
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 PENDING
+          - 10 MARKED DONE
+          - 15 SETTLED
+          - 14 CLOSED
+          - 25 CANCELLED
+        enum:
+        - 0
+        - 10
+        - 15
+        - 14
+        - 25
+      amount:
+        type: integer
+      autoSettlementStartedAt:
+        type: integer
+      settledAt:
+        type: integer
+      currency:
+        type: string
+        description: |
+          Enums are 3-letter codes according to ISO 4217 specification
+        enum:
+        - PLN
+        - HUF
+        - EUR
+        - CAD
+        - USD
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  BillingAddress:
+    type: object
+    required:
+    - name
+    - numberVAT
+    - countryCode
+    - street
+    - postalCode
+    - city
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      name:
+        type: string
+      numberVAT:
+        type: string
+      countryCode:
+        type: string
+      street:
+        type: string
+      postalCode:
+        type: string
+      city:
+        type: string
+      streetNumber:
+        type: string
+      addressAddition:
+        type: string
+      region:
+        type: string
+      taxNumber:
+        type: string
+      default:
+        type: boolean
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time      
+  Report:
+    type: object
+    required:
+    - reportName
+    properties:
+      id:
+        type: integer
+      reportName:
+        type: string
+      reportValue:
+        type: integer
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  PaymentObject:
+    type: object
+    required:
+    - provider
+    - type
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      orderId:
+        type: integer
+      provider:
+        type: string
+        enum:
+        - stripe
+        - barion
+      type:
+        type: string
+        enum:
+        - charge
+        - card
+        - customer
+      objId:
+        type: string
+      obj:
+        type: object
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  Message:
+    type: object
+    properties:
+      id:
+        type: integer
+      fromUserId:
+        type: integer
+      toUserId:
+        type: integer
+      taskId:
+        type: integer
+      requestId:
+        type: integer
+      message:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  Post:
+    type: object
+    required:
+    - title
+    - code
+    - type
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+      code:
+        type: string
+      type:
+        type: string
+      body:
+        type: string
+      targetUserType:
+        type: integer
+        description: |
+          Enums are:
+          - 1 DEMAND
+          - 2 SUPPLY
+        enum:
+        - 1
+        - 2
+      eventTrigger:
+        type: string
+        enum:
+        - new-order
+        - order-closed
+        - order-completed
+        - order-marked-as-done
+  AppConfig:
+    type: object
+    required:
+    - fieldKey
+    properties:
+      id:
+        type: integer
+      fieldKey:
+        type: string
+      fieldValue:
+        type: string
+  AppLabel:
+    type: object
+    required:
+    - labelKey
+    - lang
+    properties:
+      id:
+        type: integer
+      labelKey:
+        type: string
+      labelValue:
+        type: string
+      lang:
+        type: string
+        description: |
+          Enums are 2-letter codes according to ISO 3166 specification
+        enum:
+        - de
+        - en
+        - pl
+        - hu
+  AppTaskCategory:
+    type: object
+    required:
+    - code
+    - label
+    properties:
+      id:
+        type: integer
+      code:
+        type: string
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 ACTIVE
+          - 103 INACTIVE
+          - 99 DELETED
+        enum:
+        - 0
+        - 103
+        - 99
+      bigImageUrl:
+        type: string
+      imageUrl:
+        type: string
+      label:
+        type: string
+      minPriceHour:
+        type: integer
+      desc:
+        type: string
+      minQuantity:
+        type: number
+        format: float
+      maxQuantity:
+        type: number
+        format: float
+      quantityStep:
+        type: number
+        format: float
+      unitOfMeasure:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  AppUserProperty:
+    type: object
+    required:
+    - propKey
+    - labelKey
+    properties:
+      id:
+        type: integer
+      propKey:
+        type: string
+      labelKey:
+        type: string
+  User:
+    type: object
+    required:
+    - accountType
+    - userType
+    - firstName
+    - lastName
+    properties:
+      id:
+        type: integer
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 UNVERIFIED
+          - 10 VERIFIED
+          - 15 DISABLED
+          - 20 BLOCKED
+        enum:
+        - 0
+        - 10
+        - 15
+        - 20
+      accountType:
+        type: string
+      userType:
+        type: integer
+      firstName:
+        type: string
+      lastName:
+        type: string
+      isAdmin:
+        type: boolean
+      country:
+        type: string
+      website:
+        type: string
+      bio:
+        type: string
+      imageUrl:
+        type: string
+      avgReviewRate:
+        type: number
+        format: float
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+      deletedAt:
+        type: string
+        format: date-time        
+      vqUserId:
+        type: integer
+  UserAuth:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: This is equal to the UserID
+      status:
+        type: integer
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  UserEmail:
+    type: object
+    required:
+    - email
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      email:
+        type: string
+      verified:
+        type: boolean
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  UserNetwork:
+    type: object
+    required:
+    - networkId
+    - network
+    - token
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      networkId:
+        type: string
+      network:
+        type: string
+      token:
+        type: string
+      refreshToken:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  UserPassword:
+    type: object
+    required:
+    - password
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      password:
+        type: string
+        format: password
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  UserPaymentAccount:
+    type: object
+    required:
+    - networkId
+    - accountId
+    - publicKey
+    - secretKey
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      networkId:
+        type: string
+        enum:
+        - stripe
+      accountId:
+        type: string
+      publicKey:
+        type: string
+      secretKey:
+        type: string
+      data:
+        type: object
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  UserReference:
+    type: object
+    required:
+    - value
+    - type
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      value:
+        type: string
+      type:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  UserProperty:
+    type: object
+    required:
+    - propKey
+    - propValue
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      propKey:
+        type: string
+      propRating:
+        type: integer
+      propValue:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  UserResetCode:
+    type: object
+    required:
+    - code
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      code:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+  UserToken:
+    type: object
+    required:
+    - token
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      token:
+        type: string
+      deleted:
+        type: boolean
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  Task:
+    type: object
+    required:
+    - title
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      intervalUnit:
+        type: integer
+      taskType:
+        type: integer
+        description: |
+          Enums are:
+          - 1 DEMAND LISTING
+          - 2 SUPPLY LISTING
+        enum:
+        - 1
+        - 2
+      currency:
+        type: string
+        description: |
+          Enums are 3-letter codes according to ISO 4217 specification
+        enum:
+        - HUF
+        - EUR
+        - USD
+        - PLN
+        - CAD
+      priceType:
+        type: integer
+        description: |
+          Enums are:
+          - 0 PER_CONTRACT
+          - 1 PER_HOUR
+          - 2 ON_REQUEST
+        enum:
+        - 0
+        - 1
+        - 2
+      price:
+        type: integer
+      quantity:
+        type: integer
+      unitOfMeasure:
+        type: string
+      title:
+        type: string
+      description:
+        type: string
+      callToActionLabel:
+        type: string
+      callToActionUrl:
+        type: string
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 ACTIVE
+          - 10 CREATION_IN_PROGRESS
+          - 20 BOOKED
+          - 30 COMPLETED
+          - 99 SPAM
+          - 103 INACTIVE
+        enum:
+        - 0
+        - 10
+        - 20
+        - 30
+        - 99
+        - 103
+      categories:
+        type: array
+        items:
+          $ref: '#/definitions/TaskCategory'
+      requests:
+        type: array
+        items:
+          $ref: '#/definitions/Request'
+      reviews:
+        type: array
+        items:
+          $ref: '#/definitions/Review'
+      taskTimings:
+        type: array
+        items:
+          $ref: '#/definitions/TaskTiming'
+      taskLocations:
+        type: array
+        items:
+          $ref: '#/definitions/TaskLocation'
+      images:
+        type: array
+        items:
+          $ref: '#/definitions/TaskImage'
+      location:
+        type: object
+        $ref: '#/definitions/TaskLocation'
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+  TaskWithComments:
+    allOf:
+    - $ref: '#/definitions/Task'
+    - type: object
+      properties: 
+        comments:
+          type: array
+          items:
+            $ref: '#/definitions/TaskComment'
+  RequestWithDetails:
+    type: object
+    properties:
+      id:
+        type: integer
+      fromUserId:
+        type: integer
+      fromUser:
+        type: object
+        $ref: '#/definitions/User'
+      toUserId:
+        type: integer
+      toUser:
+        type: object
+        $ref: '#/definitions/User'
+      taskId:
+        type: integer
+      task:
+        type: object
+        $ref: '#/definitions/Task'
+      intervalStart:
+        type: integer
+      intervalEnd:
+        type: integer
+      quantity:
+        type: integer
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 PENDING
+          - 5 ACCEPTED
+          - 6 BOOKED
+          - 10 MARKED DONE
+          - 14 CLOSED
+          - 15 SETTLED
+          - 20 DECLINED
+          - 25 CANCELLED
+        enum:
+        - 0
+        - 5
+        - 6
+        - 10
+        - 14
+        - 15
+        - 20
+        - 25
+      review:
+        type: object
+        $ref: '#/definitions/Review'
+      order:
+        type: object
+        $ref: '#/definitions/Order'
+      lastMsg:
+        type: object
+        $ref: '#/definitions/Message'
+      with:
+        type: object
+        $ref: '#/definitions/User'
+      userProperties:
+        type: array
+        items:
+          $ref: '#/definitions/UserProperty'
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time     
+  OrderWithDetails:
+    type: object
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      fromUser:
+        $ref: '#/definitions/User'
+      taskId:
+        type: integer
+      task:
+        $ref: '#/definitions/Task'
+      requestId:
+        type: integer
+      request:
+        $ref: '#/definitions/Request'
+      billingAddressId:
+        type: integer
+      billingAddress:
+        $ref: '#/definitions/BillingAddress'
+      review:
+        $ref: '#/definitions/Review'
+      status:
+        type: string
+        description: |
+          Enums are:
+          - 0 PENDING
+          - 10 MARKED DONE
+          - 15 SETTLED
+          - 14 CLOSED
+          - 25 CANCELLED
+        enum:
+        - 0
+        - 10
+        - 15
+        - 14
+        - 25
+      amount:
+        type: integer
+      autoSettlementStartedAt:
+        type: integer
+      settledAt:
+        type: integer
+      currency:
+        type: string
+        description: |
+          Enums are 3-letter codes according to ISO 4217 specification
+        enum:
+        - PLN
+        - HUF
+        - EUR
+        - CAD
+        - USD
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time        
+
+
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /VQ-Labs/vq-marketplace-api/1.0.0
