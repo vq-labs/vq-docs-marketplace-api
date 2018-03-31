@@ -3,6 +3,7 @@
 Documentation library is [https://github.com/Rebilly/ReDoc](https://github.com/Rebilly/ReDoc).
 
 It uses the "Deployment" example in ReDoc README but for reference it can be found below:
+Side Note: we fetch YAML over GitHub so anytime you want to update the API spec, push it to master.
 
 ```html
 <!DOCTYPE html>
@@ -20,7 +21,7 @@ It uses the "Deployment" example in ReDoc README but for reference it can be fou
     </style>
   </head>
   <body>
-    <redoc spec-url='https://app.swaggerhub.com/apis/VQ-Labs/vq-marketplace-api/1.0.0/swagger.yaml'></redoc>
+    <redoc spec-url='https://raw.githubusercontent.com/vq-labs/vq-docs-marketplace-api/master/swagger.yaml'></redoc>
     <script src="https://rebilly.github.io/ReDoc/releases/latest/redoc.min.js"> </script>
   </body>
 </html>
